@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Table Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'media',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f0f4f8',
+                            100: '#d9e2ec',
+                            200: '#bcccdc',
+                            300: '#9fb3c8',
+                            400: '#829ab1',
+                            500: '#627d98',
+                            600: '#486581',
+                            700: '#334e68',
+                            800: '#243b53',
+                            900: '#102a43',
+                        }
+                    },
+                    boxShadow: {
+                        'custom': '0 4px 15px rgba(0, 0, 0, 0.1)',
+                        'custom-hover': '0 8px 25px rgba(0, 0, 0, 0.15)',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-in-out',
+                        'fade-out': 'fadeOut 0.3s ease-in-out',
+                        'bounce-in': 'bounceIn 0.5s ease-in-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        fadeOut: {
+                            '0%': { opacity: '1' },
+                            '100%': { opacity: '0' },
+                        },
+                        bounceIn: {
+                            '0%': { transform: 'scale(0.8)', opacity: '0' },
+                            '70%': { transform: 'scale(1.05)', opacity: '1' },
+                            '100%': { transform: 'scale(1)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .drawing-table {
+            border-collapse: collapse;
+            min-width: 400px;
+            transition: all 0.3s ease;
+        }
+
+        .drawing-table td {
+            border: 1px solid rgba(203, 213, 225, 1);
+            position: relative;
+            user-select: none;
+            transition: background-color 0.2s ease;
+        }
+
+        .dark .drawing-table td {
+            border-color: rgba(51, 65, 85, 0.8);
+        }
+
+        .drawing-table td.selected {
+            background-color: rgba(59, 130, 246, 0.15);
+        }
+
+        .drawing-table td:hover:not(.selected) {
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            min-width: 300px;
+            max-width: 80%;
+            text-align: center;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 12px 20px;
+            animation: slide-up-fade 0.3s ease-out forwards;
+        }
+
+        @keyframes slide-up-fade {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, 20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+
+        .notification.hide {
+            animation: slide-down-fade 0.3s ease-in forwards;
+        }
+
+        @keyframes slide-down-fade {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, 20px);
+            }
+        }
+
+        .glass-bg {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .dark .glass-bg {
+            background: rgba(15, 23, 42, 0.75);
+        }
+
+        @media (max-width: 640px) {
+            .toolbar-item {
+                margin-bottom: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-sky-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 min-h-screen">
+    <div class="container mx-auto px-4 py-6">
+        <div class="max-w-5xl mx-auto">
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-8 flex-wrap">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-primary-600 rounded-lg p-2 text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                    </div>
+                    <h1 class="text-2xl font-bold text-slate-800 dark:text-white">Quick Table Tool</h1>
+                </div>
+                <div class="flex space-x-2 mt-2 sm:mt-0">
+                    <button id="help-button" class="bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-lg shadow hover:shadow-md transition-all flex items-center space-x-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Help</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main content container with glass effect -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-custom p-6 mb-6 transition-all hover:shadow-custom-hover">
+                <!-- Toolbar -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg">
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Table Size</label>
+                        <div class="flex items-center">
+                            <input type="number" id="rows" min="1" max="20" value="3" class="w-20 p-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-l focus:outline-none focus:ring-2 focus:ring-primary-500 text-base bg-white dark:text-white">
+                            <span class="px-3 py-2 bg-slate-100 dark:bg-slate-600 text-slate-700 dark:text-slate-300">×</span>
+                            <input type="number" id="cols" min="1" max="20" value="3" class="w-20 p-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 rounded-r focus:outline-none focus:ring-2 focus:ring-primary-500 text-base bg-white dark:text-white">
+                            <button id="create-table" class="ml-3 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg shadow transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50">
+                                <div class="flex items-center space-x-1">
+                                    <i class="fas fa-table text-sm"></i>
+                                    <span>Create</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-lg flex flex-col justify-between">
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Options</label>
+                        <div class="flex flex-wrap gap-2">
+                            <button id="merge-cells" class="bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 shadow hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1" disabled>
+                                <i class="fas fa-object-group text-sm"></i>
+                                <span>Merge Cells</span>
+                            </button>
+                            <button id="undo-button" class="bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 shadow hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1" disabled>
+                                <i class="fas fa-undo text-sm"></i>
+                                <span>Undo</span>
+                            </button>
+                            <button id="redo-button" class="bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 shadow hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1" disabled>
+                                <i class="fas fa-redo text-sm"></i>
+                                <span>Redo</span>
+                            </button>
+                            <button id="copy-table" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg shadow transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50 flex items-center space-x-1">
+                                <i class="fas fa-copy text-sm"></i>
+                                <span>Copy Table</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Table Container -->
+                <div class="overflow-auto max-w-full border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 shadow-inner">
+                    <table id="drawing-table" class="drawing-table mx-auto">
+                        <!-- Table will be generated here -->
+                    </table>
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-custom p-6 transition-all">
+                <h2 class="text-lg font-semibold mb-3 text-slate-800 dark:text-white flex items-center">
+                    <i class="fas fa-info-circle text-primary-500 mr-2"></i>
+                    Instructions
+                </h2>
+                <ul class="space-y-2 text-slate-600 dark:text-slate-300">
+                    <li class="flex items-start">
+                        <i class="fas fa-mouse-pointer mt-1 text-primary-400 mr-2"></i>
+                        <span>Click and drag to select multiple cells</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-object-group mt-1 text-primary-400 mr-2"></i>
+                        <span>Use the "Merge Cells" button to combine selected cells</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-copy mt-1 text-primary-400 mr-2"></i>
+                        <span>Copy table to clipboard to paste into Word or PowerPoint</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-undo mt-1 text-primary-400 mr-2"></i>
+                        <span>Use Undo/Redo to revert or repeat actions</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-lg max-w-2xl w-full m-4 max-h-[80vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-slate-800 dark:text-white">How to Use Quick Table Tool</h2>
+                    <button id="close-help" class="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="text-slate-600 dark:text-slate-300 space-y-4">
+                    <div>
+                        <h3 class="font-semibold text-slate-800 dark:text-white mb-2">Creating a Table</h3>
+                        <p>Enter the desired number of rows and columns, then click the "Create" button to generate a new table.</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-slate-800 dark:text-white mb-2">Selecting Cells</h3>
+                        <p>Click and drag across cells to select them. Selected cells will be highlighted in blue.</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-slate-800 dark:text-white mb-2">Merging Cells</h3>
+                        <p>Select multiple cells and click the "Merge Cells" button to combine them into a single cell.</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-slate-800 dark:text-white mb-2">Copying the Table</h3>
+                        <p>Click the "Copy Table" button to copy the table to your clipboard. You can then paste it into Word, PowerPoint, or other applications.</p>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-slate-800 dark:text-white mb-2">Undo/Redo</h3>
+                        <p>Use the Undo and Redo buttons to revert or repeat your actions.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // DOM elements
+        const tableEl = document.getElementById('drawing-table');
+        const createBtn = document.getElementById('create-table');
+        const rowsInput = document.getElementById('rows');
+        const colsInput = document.getElementById('cols');
+        const copyBtn = document.getElementById('copy-table');
+        const mergeCellsBtn = document.getElementById('merge-cells');
+        const undoBtn = document.getElementById('undo-button');
+        const redoBtn = document.getElementById('redo-button');
+        const helpBtn = document.getElementById('help-button');
+        const helpModal = document.getElementById('help-modal');
+        const closeHelpBtn = document.getElementById('close-help');
+
+        // Help modal functionality
+        helpBtn.addEventListener('click', () => {
+            helpModal.classList.remove('hidden');
+            helpModal.classList.add('animate-fade-in');
+        });
+
+        closeHelpBtn.addEventListener('click', () => {
+            helpModal.classList.add('animate-fade-out');
+            setTimeout(() => {
+                helpModal.classList.add('hidden');
+                helpModal.classList.remove('animate-fade-out');
+            }, 300);
+        });
+
+        helpModal.addEventListener('click', (e) => {
+            if (e.target === helpModal) {
+                closeHelpBtn.click();
+            }
+        });
+
+        // State management
+        let tableData = {
+            rows: 3,
+            cols: 3,
+            cells: {},
+            mergedCells: {}
+        };
+        
+        // For cell selection
+        let selectedCells = [];
+        let selecting = false;
+        let startCell = null;
+        
+        // Undo/Redo stacks
+        let undoStack = [];
+        let redoStack = [];
+
+        // Initialize with default table
+        createTable(3, 3);
+
+        // Event Listeners
+        createBtn.addEventListener('click', () => {
+            const rows = parseInt(rowsInput.value) || 0; // Changed default to 0 to catch invalid inputs
+            const cols = parseInt(colsInput.value) || 0;
+            
+            if (rows < 1 || cols < 1) {
+                showNotification("Rows and columns must be at least 1", "warning");
+                tableEl.innerHTML = ''; // Clear the table preview
+                return;
+            }
+            
+            saveState();
+            createTable(rows, cols);
+        });
+
+        copyBtn.addEventListener('click', copyTableToClipboard);
+        mergeCellsBtn.addEventListener('click', mergeCells);
+        undoBtn.addEventListener('click', () => {
+            if (undoStack.length === 0) {
+                showNotification("Nothing to undo", "info");
+                return;
+            }
+            undo();
+        });
+        redoBtn.addEventListener('click', () => {
+            if (redoStack.length === 0) {
+                showNotification("Nothing to redo", "info");
+                return;
+            }
+            redo();
+        });
+
+        // Create the table
+        function createTable(rows, cols) {
+            tableData = {
+                rows,
+                cols,
+                cells: {},
+                mergedCells: {}
+            };
+            
+            tableEl.innerHTML = '';
+            for (let i = 0; i < rows; i++) {
+                const row = tableEl.insertRow();
+                for (let j = 0; j < cols; j++) {
+                    const cell = row.insertCell();
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.dataset.id = `${i}-${j}`;
+                    
+                    tableData.cells[`${i}-${j}`] = {
+                        row: i,
+                        col: j,
+                        rowspan: 1,
+                        colspan: 1,
+                        content: ''
+                    };
+                }
+            }
+            
+            updateTableFromData();
+            setupEventListeners();
+            clearSelection();
+            updateUndoRedoButtons();
+            showNotification("Table created successfully", "success");
+        }
+
+        function updateTableFromData() {
+            tableEl.innerHTML = '';
+            tableEl.style.tableLayout = 'fixed'; // Ensures fixed column widths
+        
+            // Add colgroup to define column widths
+            const colgroup = document.createElement('colgroup');
+            for (let j = 0; j < tableData.cols; j++) {
+                const col = document.createElement('col');
+                col.style.width = '50px'; // Base width for each column
+                colgroup.appendChild(col);
+            }
+            tableEl.appendChild(colgroup);
+        
+            // Create rows and set their height
+            for (let i = 0; i < tableData.rows; i++) {
+                const row = tableEl.insertRow();
+                row.style.height = '50px'; // Base height for each row
+                for (let j = 0; j < tableData.cols; j++) {
+                    const cellId = `${i}-${j}`;
+                    if (isCellMerged(i, j) && !isMergeOrigin(i, j)) {
+                        continue; // Skip cells covered by merged cells
+                    }
+                    const cell = row.insertCell();
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.dataset.id = cellId;
+                    if (isMergeOrigin(i, j)) {
+                        const mergedArea = tableData.mergedCells[cellId];
+                        cell.rowSpan = mergedArea.rowspan;
+                        cell.colSpan = mergedArea.colspan;
+                    }
+                }
+            }
+            setupEventListeners();
+        }
+
+        function setupEventListeners() {
+            const cells = tableEl.querySelectorAll('td');
+            
+            cells.forEach(cell => {
+                // Mouse events
+                cell.addEventListener('mousedown', onCellMouseDown);
+                cell.addEventListener('mouseover', onCellMouseOver);
+                
+                // Touch events for mobile support
+                cell.addEventListener('touchstart', onCellTouchStart, { passive: false });
+                cell.addEventListener('touchmove', onCellTouchMove, { passive: false });
+            });
+            
+            document.addEventListener('mouseup', onDocumentMouseUp);
+            document.addEventListener('touchend', onDocumentTouchEnd);
+        }
+
+        // Mouse event handlers
+        function onCellMouseDown(e) {
+            const cell = e.target.closest('td');
+            if (!cell) return;
+            
+            selecting = true;
+            
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            const mergedArea = getMergedArea(row, col);
+            
+            if (mergedArea) {
+                startCell = { row: mergedArea.startRow, col: mergedArea.startCol };
+            } else {
+                startCell = { row, col };
+            }
+            
+            if (!e.shiftKey) {
+                clearSelection();
+            }
+            
+            if (mergedArea) {
+                selectMergedArea(mergedArea);
+            } else {
+                addCellToSelection(cell);
+            }
+            
+            e.preventDefault();
+        }
+
+        function onCellMouseOver(e) {
+            if (!selecting) return;
+            
+            const cell = e.target.closest('td');
+            if (!cell) return;
+            
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            const mergedArea = getMergedArea(row, col);
+            
+            const currentRow = mergedArea ? mergedArea.startRow : row;
+            const currentCol = mergedArea ? mergedArea.startCol : col;
+            
+            if (!e.shiftKey) {
+                clearSelection();
+            }
+            
+            const startRow = Math.min(startCell.row, currentRow);
+            const endRow = Math.max(startCell.row, currentRow);
+            const startCol = Math.min(startCell.col, currentCol);
+            const endCol = Math.max(startCell.col, currentCol);
+            
+            for (let i = startRow; i <= endRow; i++) {
+                for (let j = startCol; j <= endCol; j++) {
+                    const cellToSelect = getCellElement(i, j);
+                    if (cellToSelect) {
+                        const area = getMergedArea(i, j);
+                        if (area) {
+                            selectMergedArea(area);
+                        } else {
+                            addCellToSelection(cellToSelect);
+                        }
+                    }
+                }
+            }
+        }
+
+        function onDocumentMouseUp() {
+            if (selecting) {
+                selecting = false;
+                updateMergeButton();
+            }
+        }
+
+        // Touch event handlers for mobile support
+        function onCellTouchStart(e) {
+            const cell = e.target.closest('td');
+            if (!cell) return;
+            
+            selecting = true;
+            
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            const mergedArea = getMergedArea(row, col);
+            
+            startCell = mergedArea ? 
+                { row: mergedArea.startRow, col: mergedArea.startCol } : 
+                { row, col };
+            
+            clearSelection();
+            if (mergedArea) {
+                selectMergedArea(mergedArea);
+            } else {
+                addCellToSelection(cell);
+            }
+            
+            e.preventDefault();
+        }
+
+        function onCellTouchMove(e) {
+            if (!selecting) return;
+            
+            const touch = e.touches[0];
+            const cell = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (!cell || cell.tagName !== 'TD') return;
+            
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            const mergedArea = getMergedArea(row, col);
+            
+            const currentRow = mergedArea ? mergedArea.startRow : row;
+            const currentCol = mergedArea ? mergedArea.startCol : col;
+            
+            clearSelection();
+            
+            const startRow = Math.min(startCell.row, currentRow);
+            const endRow = Math.max(startCell.row, currentRow);
+            const startCol = Math.min(startCell.col, currentCol);
+            const endCol = Math.max(startCell.col, currentCol);
+            
+            for (let i = startRow; i <= endRow; i++) {
+                for (let j = startCol; j <= endCol; j++) {
+                    const cellToSelect = getCellElement(i, j);
+                    if (cellToSelect) {
+                        const area = getMergedArea(i, j);
+                        if (area) {
+                            selectMergedArea(area);
+                        } else {
+                            addCellToSelection(cellToSelect);
+                        }
+                    }
+                }
+            }
+            
+            e.preventDefault();
+        }
+
+        function onDocumentTouchEnd() {
+            if (selecting) {
+                selecting = false;
+                updateMergeButton();
+            }
+        }
+
+        // Selection Helper Functions
+        function addCellToSelection(cell) {
+            if (!cell || cell.classList.contains('selected')) return;
+            cell.classList.add('selected');
+            selectedCells.push(cell);
+        }
+
+        function clearSelection() {
+            selectedCells.forEach(cell => cell.classList.remove('selected'));
+            selectedCells = [];
+            updateMergeButton();
+        }
+
+        function updateMergeButton() {
+            mergeCellsBtn.disabled = selectedCells.length <= 1;
+        }
+
+        // Helper functions for merged cell selection
+        function getMergedArea(row, col) {
+            for (const mergeOrigin in tableData.mergedCells) {
+                const [originRow, originCol] = mergeOrigin.split('-').map(Number);
+                const { rowspan, colspan } = tableData.mergedCells[mergeOrigin];
+                
+                if (row >= originRow && row < originRow + rowspan &&
+                    col >= originCol && col < originCol + colspan) {
+                    return {
+                        startRow: originRow,
+                        startCol: originCol,
+                        endRow: originRow + rowspan - 1,
+                        endCol: originCol + colspan - 1
+                    };
+                }
+            }
+            return null;
+        }
+
+        function selectMergedArea(mergedArea) {
+            for (let i = mergedArea.startRow; i <= mergedArea.endRow; i++) {
+                for (let j = mergedArea.startCol; j <= mergedArea.endCol; j++) {
+                    const cell = getCellElement(i, j);
+                    if (cell) {
+                        addCellToSelection(cell);
+                    }
+                }
+            }
+        }
+
+        // Merge Cells Function
+        function mergeCells() {
+            if (selectedCells.length <= 1) return;
+            
+            const coveredCells = new Set();
+            selectedCells.forEach(cell => {
+                const startRow = parseInt(cell.dataset.row);
+                const startCol = parseInt(cell.dataset.col);
+                const rowspan = cell.rowSpan || 1;
+                const colspan = cell.colSpan || 1;
+                for (let i = 0; i < rowspan; i++) {
+                    for (let j = 0; j < colspan; j++) {
+                        const row = startRow + i;
+                        const col = startCol + j;
+                        coveredCells.add(`${row}-${col}`);
+                    }
+                }
+            });
+            
+            let minRow = Infinity, maxRow = -Infinity, minCol = Infinity, maxCol = -Infinity;
+            coveredCells.forEach(cellId => {
+                const [row, col] = cellId.split('-').map(Number);
+                minRow = Math.min(minRow, row);
+                maxRow = Math.max(maxRow, row);
+                minCol = Math.min(minCol, col);
+                maxCol = Math.max(maxCol, col);
+            });
+            
+            const expectedCount = (maxRow - minRow + 1) * (maxCol - minCol + 1);
+            if (coveredCells.size !== expectedCount) {
+                showNotification("Please select a rectangular area to merge", "error");
+                return;
+            }
+            
+            saveState();
+            
+            for (let i = minRow; i <= maxRow; i++) {
+                for (let j = minCol; j <= maxCol; j++) {
+                    const cellId = `${i}-${j}`;
+                    if (tableData.mergedCells[cellId]) {
+                        delete tableData.mergedCells[cellId];
+                    }
+                }
+            }
+            
+            const mergeOriginId = `${minRow}-${minCol}`;
+            const newRowspan = maxRow - minRow + 1;
+            const newColspan = maxCol - minCol + 1;
+            if (newRowspan > 1 || newColspan > 1) {
+                tableData.mergedCells[mergeOriginId] = { rowspan: newRowspan, colspan: newColspan };
+            }
+            
+            updateTableFromData();
+            clearSelection();
+            showNotification("Cells merged successfully", "success");
+        }
+
+        // Helper Functions
+        function getCellElement(row, col) {
+            return tableEl.querySelector(`td[data-row="${row}"][data-col="${col}"]`);
+        }
+
+        function isCellMerged(row, col) {
+            for (const mergeOrigin in tableData.mergedCells) {
+                const [originRow, originCol] = mergeOrigin.split('-').map(Number);
+                const { rowspan, colspan } = tableData.mergedCells[mergeOrigin];
+                if (row >= originRow && row < originRow + rowspan &&
+                    col >= originCol && col < originCol + colspan) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function isMergeOrigin(row, col) {
+            return tableData.mergedCells[`${row}-${col}`] !== undefined;
+        }
+
+        // Create modal for table preview
+        function createPreviewModal() {
+            const modal = document.createElement('div');
+            modal.id = 'preview-modal';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center animate-fade-in';
+            
+            const modalContent = document.createElement('div');
+            modalContent.className = 'bg-white dark:bg-slate-800 rounded-xl shadow-lg max-w-2xl w-full m-4 animate-bounce-in';
+            
+            const header = document.createElement('div');
+            header.className = 'border-b border-slate-200 dark:border-slate-700 p-5 flex justify-between items-center';
+            
+            const title = document.createElement('h3');
+            title.className = 'text-xl font-bold text-slate-800 dark:text-white flex items-center';
+            title.innerHTML = '<i class="fas fa-table text-primary-500 mr-2"></i> Copy Table Preview';
+            
+            const closeButton = document.createElement('button');
+            closeButton.className = 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none';
+            closeButton.innerHTML = '<i class="fas fa-times text-xl"></i>';
+            closeButton.addEventListener('click', () => {
+                modal.classList.add('animate-fade-out');
+                setTimeout(() => document.body.removeChild(modal), 300);
+            });
+            
+            header.appendChild(title);
+            header.appendChild(closeButton);
+            
+            const body = document.createElement('div');
+            body.className = 'p-5';
+            
+            const instructions = document.createElement('p');
+            instructions.className = 'text-slate-600 dark:text-slate-300 mb-4';
+            instructions.textContent = 'The table below will be copied to your clipboard. Click "Copy Table" or select parts of it manually.';
+            
+            const copyButton = document.createElement('button');
+            copyButton.className = 'mb-5 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg shadow transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50 flex items-center space-x-2';
+            copyButton.innerHTML = '<i class="fas fa-copy"></i><span>Copy Table</span>';
+            
+            const tableContainer = document.createElement('div');
+            tableContainer.className = 'border border-primary-300 dark:border-primary-700 rounded-lg p-4 overflow-auto max-h-[60vh] bg-white dark:bg-slate-900';
+            
+            body.appendChild(instructions);
+            body.appendChild(copyButton);
+            body.appendChild(tableContainer);
+            
+            modalContent.appendChild(header);
+            modalContent.appendChild(body);
+            modal.appendChild(modalContent);
+            
+            return { modal, tableContainer, copyButton };
+        }
+        
+        // Copy Table Function
+        function copyTableToClipboard() {
+            try {
+                const { modal, tableContainer, copyButton } = createPreviewModal();
+                const tableCopy = createCopyableTable();
+                tableContainer.appendChild(tableCopy);
+                document.body.appendChild(modal);
+                
+                copyButton.addEventListener('click', () => {
+                    tableCopy.style.backgroundColor = 'rgba(14, 165, 233, 0.1)';
+                    const range = document.createRange();
+                    range.selectNode(tableCopy);
+                    window.getSelection().removeAllRanges();
+                    window.getSelection().addRange(range);
+                    
+                    const successful = document.execCommand('copy');
+                    
+                    if (successful) {
+                        showNotification("Table copied to clipboard!", "success");
+                        window.getSelection().removeAllRanges();
+                        setTimeout(() => {
+                            tableCopy.style.backgroundColor = '';
+                        }, 300);
+                        setTimeout(() => {
+                            modal.classList.add('animate-fade-out');
+                            setTimeout(() => document.body.removeChild(modal), 300);
+                        }, 1000);
+                    } else {
+                        copyUsingClipboardAPI(tableCopy.outerHTML);
+                        setTimeout(() => {
+                            modal.classList.add('animate-fade-out');
+                            setTimeout(() => document.body.removeChild(modal), 300);
+                        }, 1000);
+                    }
+                });
+            } catch (error) {
+                console.error('Copy preview error:', error);
+                copyUsingDirectMethod();
+            }
+        }
+        
+        // Direct copy method as fallback
+        function copyUsingDirectMethod() {
+            try {
+                const tempDiv = document.createElement('div');
+                tempDiv.style.position = 'fixed';
+                tempDiv.style.left = '-9999px';
+                tempDiv.style.top = '0';
+                const tableCopy = createCopyableTable();
+                tempDiv.appendChild(tableCopy);
+                
+                document.body.appendChild(tempDiv);
+                const range = document.createRange();
+                range.selectNode(tableCopy);
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+                
+                const successful = document.execCommand('copy');
+                window.getSelection().removeAllRanges();
+                document.body.removeChild(tempDiv);
+                
+                if (successful) {
+                    showNotification("Table copied to clipboard!", "success");
+                } else {
+                    copyUsingClipboardAPI(tableCopy.outerHTML);
+                }
+            } catch (error) {
+                console.error('Direct copy error:', error);
+                showNotification("Failed to copy table. Please try again.", "error");
+            }
+        }
+        
+        // Helper function for clipboard API fallback
+        function copyUsingClipboardAPI(htmlContent) {
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const data = new ClipboardItem({ 'text/html': blob });
+            
+            navigator.clipboard.write([data]).then(() => {
+                showNotification("Table copied to clipboard!", "success");
+            }, (err) => {
+                console.error('Clipboard API error:', err);
+                showNotification("Failed to copy table to clipboard. Please try again.", "error");
+            });
+        }
+        
+        // Define a constant for the base width of a single cell (in pixels)
+        const BASE_CELL_WIDTH = 50;
+        
+        // Helper function to create the HTML for the table with black borders
+        function createCopyableTable() {
+            // Create the table element
+            const tableCopy = document.createElement('table');
+            tableCopy.style.borderCollapse = 'collapse';
+            tableCopy.style.width = 'auto'; // Let the table width adjust based on cell widths
+            tableCopy.style.border = '1px solid #000000';
+            tableCopy.style.margin = 'auto';
+        
+            // Iterate over rows
+            for (let i = 0; i < tableData.rows; i++) {
+                const row = document.createElement('tr');
+                row.style.height = '50px'; // Fixed height for consistency (adjust as needed)
+        
+                // Iterate over columns
+                for (let j = 0; j < tableData.cols; j++) {
+                    const cellId = `${i}-${j}`;
+        
+                    // Skip cells that are part of a merged area but not the origin
+                    if (isCellMerged(i, j) && !isMergeOrigin(i, j)) {
+                        continue;
+                    }
+        
+                    // Create the cell element
+                    const cell = document.createElement('td');
+                    cell.style.border = '1px solid #000000';
+                    cell.style.padding = '8px';
+                    cell.style.height = '50px'; // Match row height
+                    cell.innerHTML = ' '; // Default content (empty space)
+        
+                    // Calculate and set the width based on colspan
+                    const colspan = isMergeOrigin(i, j) ? tableData.mergedCells[cellId].colspan : 1;
+                    const cellWidth = BASE_CELL_WIDTH * colspan;
+                    cell.style.width = `${cellWidth}px`;
+        
+                    // Apply rowspan and colspan for merged cells
+                    if (isMergeOrigin(i, j)) {
+                        const mergedArea = tableData.mergedCells[cellId];
+                        cell.rowSpan = mergedArea.rowspan;
+                        cell.colSpan = mergedArea.colspan;
+                    }
+        
+                    // Append the cell to the row
+                    row.appendChild(cell);
+                }
+        
+                // Append the row to the table
+                tableCopy.appendChild(row);
+            }
+        
+            return tableCopy;
+        }
+
+        // Undo/Redo Functions
+        function saveState() {
+            undoStack.push(JSON.stringify(tableData));
+            redoStack = [];
+            updateUndoRedoButtons();
+        }
+
+        function undo() {
+            if (undoStack.length === 0) return;
+            redoStack.push(JSON.stringify(tableData));
+            tableData = JSON.parse(undoStack.pop());
+            updateTableFromData();
+            clearSelection();
+            updateUndoRedoButtons();
+            showNotification("Action undone", "info");
+        }
+
+        function redo() {
+            if (redoStack.length === 0) return;
+            undoStack.push(JSON.stringify(tableData));
+            tableData = JSON.parse(redoStack.pop());
+            updateTableFromData();
+            clearSelection();
+            updateUndoRedoButtons();
+            showNotification("Action redone", "info");
+        }
+
+        function updateUndoRedoButtons() {
+            undoBtn.disabled = undoStack.length === 0;
+            redoBtn.disabled = redoStack.length === 0;
+        }
+
+        // Notification system
+        function showNotification(message, type = "info") {
+            const existingNotifications = document.querySelectorAll('.notification');
+            existingNotifications.forEach(notification => {
+                notification.classList.add('hide');
+                setTimeout(() => {
+                    if (notification.parentNode) notification.parentNode.removeChild(notification);
+                }, 300);
+            });
+
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            
+            switch (type) {
+                case "success":
+                    notification.classList.add('bg-green-500', 'text-white');
+                    notification.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${message}`;
+                    break;
+                case "error":
+                    notification.classList.add('bg-red-500', 'text-white');
+                    notification.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i>${message}`;
+                    break;
+                case "warning":
+                    notification.classList.add('bg-yellow-500', 'text-white');
+                    notification.innerHTML = `<i class="fas fa-exclamation-triangle mr-2"></i>${message}`;
+                    break;
+                case "info":
+                default:
+                    notification.classList.add('bg-primary-500', 'text-white');
+                    notification.innerHTML = `<i class="fas fa-info-circle mr-2"></i>${message}`;
+                    break;
+            }
+            
+            document.body.appendChild(notification);
+            setTimeout(() => {
+                notification.classList.add('hide');
+                setTimeout(() => {
+                    if (notification.parentNode) notification.parentNode.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+    });
+    </script>
+</body>
+</html>
